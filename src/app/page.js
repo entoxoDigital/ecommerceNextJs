@@ -1,21 +1,32 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import ProductCard from '@/components/ProductCard'
 import { products, categories } from '@/data/products'
 
 export default function Home() {
   const [selectedCategory, setSelectedCategory] = useState("All")
+  const searchParams = useSearchParams()
+  const searchQuery = searchParams.get('search') || ''
 
-  const filteredProducts = selectedCategory === "All" 
-    ? products 
-    : products.filter(product => product.category === selectedCategory)
+  const filteredProducts = products.filter(product => {
+    const matchesCategory = selectedCategory === "All" || product.category === selectedCategory
+    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         product.description.toLowerCase().includes(searchQuery.toLowerCase())
+    return matchesCategory && matchesSearch
+  })
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
       <div className="max-w-6xl mx-auto">
-        <h1 className="text-4xl font-bold text-gray-900 mb-8">
+        <h1 className="text-4xl font-bold text-gray-900 mb-2">
           Our Products
         </h1>
+        {searchQuery && (
+          <p className="text-gray-600 mb-6">
+            Showing results for "{searchQuery}"
+          </p>
+        )}
         
         {/* Category Filter Buttons */}
         <div className="flex flex-wrap gap-3 mb-8">
@@ -44,7 +55,9 @@ export default function Home() {
         {/* Empty State */}
         {filteredProducts.length === 0 && (
           <div className="text-center py-12">
-            <p className="text-gray-600 text-lg">No products found in this category.</p>
+            <p className="text-gray-600 text-lg">
+              No products found. Try a different search or category.
+            </p>
           </div>
         )}
       </div>

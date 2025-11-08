@@ -1,19 +1,67 @@
 'use client'
+import { useState, useEffect, use } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { useCart } from '@/context/CartContext'
-import { products } from '@/data/products'
 
 export default function ProductDetail({ params }) {
   const { addToCart } = useCart()
-  const product = products.find(p => p.id === parseInt(params.id))
+  const [product, setProduct] = useState(null)
+  const [loading, setLoading] = useState(true)
+  
+  // Unwrap params using React.use()
+  const unwrappedParams = use(params)
+  const productId = unwrappedParams.id
 
-  if (!product) {
-    return <div>Product not found</div>
-  }
+  // Fetch product from API
+  useEffect(() => {
+    async function fetchProduct() {
+      try {
+        const response = await fetch(`/api/products/${productId}`)
+        if (response.ok) {
+          const data = await response.json()
+          setProduct(data)
+        } else {
+          setProduct(null)
+        }
+      } catch (error) {
+        console.error('Error fetching product:', error)
+        setProduct(null)
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    fetchProduct()
+  }, [productId])
 
   const handleAddToCart = () => {
-    addToCart(product)
+    if (product) {
+      addToCart({ ...product, id: product._id })
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-8">
+        <div className="max-w-4xl mx-auto text-center py-12">
+          <p className="text-gray-600">Loading product...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (!product) {
+    return (
+      <div className="min-h-screen bg-gray-50 p-8">
+        <div className="max-w-4xl mx-auto text-center py-12">
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">Product Not Found</h1>
+          <Link href="/" className="text-blue-600 hover:underline">
+            ← Back to Products
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -33,6 +81,9 @@ export default function ProductDetail({ params }) {
               />
             </div>
             <div className="md:w-1/2 p-8">
+              <div className="inline-block bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm mb-2">
+                {product.category}
+              </div>
               <h1 className="text-3xl font-bold text-gray-900 mb-4">
                 {product.name}
               </h1>
@@ -47,7 +98,7 @@ export default function ProductDetail({ params }) {
               </div>
               <button 
                 onClick={handleAddToCart}
-                className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 text-lg"
+                className="w-full bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 text-lg font-semibold"
               >
                 Add to Cart
               </button>

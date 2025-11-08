@@ -1,11 +1,3 @@
-// /** @type {import('next').NextConfig} */
-// const nextConfig = {
-//   /* config options here */
-// };
-
-// export default nextConfig;
-
-
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   images: {
@@ -20,6 +12,9 @@ const nextConfig = {
       },
     ],
   },
+  experimental: {
+    serverComponentsExternalPackages: ['mongodb'],
+  },
 }
 
-export default nextConfig;
+export default nextConfig

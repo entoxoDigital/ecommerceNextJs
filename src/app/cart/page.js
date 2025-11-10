@@ -28,8 +28,8 @@ export default function CartPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Cart Items */}
           <div className="lg:col-span-2">
-            {cartItems.map(item => (
-              <div key={item.id} className="bg-white rounded-lg shadow-md p-4 mb-4">
+            {cartItems.map((item, index) => (
+              <div key={item.id || item._id || index} className="bg-white rounded-lg shadow-md p-4 mb-4">
                 <div className="flex gap-4">
                   <div className="relative w-24 h-24 flex-shrink-0">
                     <Image
@@ -95,9 +95,9 @@ export default function CartPage() {
                 </div>
               </div>
               
-              <button className="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 font-semibold mb-3">
+              <Link href="/checkout" className="block w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 font-semibold text-center mb-3">
                 Proceed to Checkout
-              </button>
+              </Link>
               
               <Link href="/" className="block text-center text-blue-600 hover:underline">
                 Continue Shopping

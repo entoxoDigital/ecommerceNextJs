@@ -1,213 +1,154 @@
 'use client'
 import { useState, useEffect } from 'react'
+import Link from 'next/link'
 
-export default function AdminPanel() {
-  const [products, setProducts] = useState([])
-  const [showForm, setShowForm] = useState(false)
-  const [editingProduct, setEditingProduct] = useState(null)
-  const [formData, setFormData] = useState({
-    name: '',
-    category: 'Hair Care',
-    description: '',
-    price: '',
-    image: '',
-    details: ''
+export default function AdminDashboard() {
+  const [stats, setStats] = useState({
+    totalOrders: 0,
+    totalProducts: 0,
+    todayOrders: 0,
+    totalRevenue: 0,
+    pendingOrders: 0
   })
+  const [recentOrders, setRecentOrders] = useState([])
 
-  // Fetch products
   useEffect(() => {
-    fetchProducts()
+    fetchDashboardData()
   }, [])
 
-  async function fetchProducts() {
-    const response = await fetch('/api/products')
-    const data = await response.json()
-    setProducts(data)
-  }
+  async function fetchDashboardData() {
+    try {
+      // Fetch orders
+      const ordersRes = await fetch('/api/orders')
+      const orders = await ordersRes.json()
 
-  // Handle form submission
-  async function handleSubmit(e) {
-    e.preventDefault()
-    
-    const url = editingProduct 
-      ? `/api/products/${editingProduct._id}`
-      : '/api/products'
-    
-    const method = editingProduct ? 'PUT' : 'POST'
+      // Fetch products
+      const productsRes = await fetch('/api/products')
+      const products = await productsRes.json()
 
-    const response = await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...formData, price: Number(formData.price) })
-    })
+      // Calculate stats
+      const today = new Date().toDateString()
+      const todayOrders = orders.filter(order => 
+        new Date(order.orderDate).toDateString() === today
+      ).length
 
-    if (response.ok) {
-      fetchProducts()
-      resetForm()
-      alert(editingProduct ? 'Product updated!' : 'Product added!')
+      const totalRevenue = orders.reduce((sum, order) => sum + (order.totalAmount || 0), 0)
+      const pendingOrders = orders.filter(order => order.status === 'pending').length
+
+      setStats({
+        totalOrders: orders.length,
+        totalProducts: products.length,
+        todayOrders,
+        totalRevenue,
+        pendingOrders
+      })
+
+      // Get 5 most recent orders
+      setRecentOrders(orders.slice(0, 5))
+    } catch (error) {
+      console.error('Failed to fetch dashboard data:', error)
     }
-  }
-
-  // Delete product
-  async function handleDelete(id) {
-    if (!confirm('Delete this product?')) return
-    
-    const response = await fetch(`/api/products/${id}`, {
-      method: 'DELETE'
-    })
-
-    if (response.ok) {
-      fetchProducts()
-      alert('Product deleted!')
-    }
-  }
-
-  // Edit product
-  function handleEdit(product) {
-    setEditingProduct(product)
-    setFormData({
-      name: product.name,
-      category: product.category,
-      description: product.description,
-      price: product.price,
-      image: product.image,
-      details: product.details
-    })
-    setShowForm(true)
-  }
-
-  function resetForm() {
-    setFormData({
-      name: '',
-      category: 'Hair Care',
-      description: '',
-      price: '',
-      image: '',
-      details: ''
-    })
-    setEditingProduct(null)
-    setShowForm(false)
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-900">Admin Panel</h1>
-          <div className="flex gap-4">
-            <a href="/" className="bg-gray-600 text-white px-6 py-2 rounded hover:bg-gray-700">
-              View Store
-            </a>
-            <button
-              onClick={() => setShowForm(!showForm)}
-              className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700"
-            >
-              {showForm ? 'Cancel' : 'Add New Product'}
-            </button>
-          </div>
+    <div>
+      <h1 className="text-3xl font-bold text-gray-900 mb-8">Dashboard</h1>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <StatCard
+          title="Total Orders"
+          value={stats.totalOrders}
+          icon="📦"
+          color="bg-blue-500"
+        />
+        <StatCard
+          title="Pending Orders"
+          value={stats.pendingOrders}
+          icon="⏳"
+          color="bg-yellow-500"
+        />
+        <StatCard
+          title="Today's Orders"
+          value={stats.todayOrders}
+          icon="🛍️"
+          color="bg-green-500"
+        />
+        <StatCard
+          title="Total Revenue"
+          value={`₹${stats.totalRevenue}`}
+          icon="💰"
+          color="bg-purple-500"
+        />
+      </div>
+
+      {/* Recent Orders */}
+      <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold text-gray-900">Recent Orders</h2>
+          <Link
+            href="/admin/orders"
+            className="text-blue-600 hover:underline"
+          >
+            View All →
+          </Link>
         </div>
 
-        {/* Add/Edit Form */}
-        {showForm && (
-          <div className="bg-white p-6 rounded-lg shadow-md mb-8">
-            <h2 className="text-2xl font-bold mb-4">
-              {editingProduct ? 'Edit Product' : 'Add New Product'}
-            </h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <input
-                  type="text"
-                  placeholder="Product Name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
-                  className="border p-2 rounded"
-                  required
-                />
-                <select
-                  value={formData.category}
-                  onChange={(e) => setFormData({...formData, category: e.target.value})}
-                  className="border p-2 rounded"
-                >
-                  <option>Hair Care</option>
-                  <option>Body Care</option>
-                  <option>Skin Care</option>
-                  <option>Lip Care</option>
-                </select>
-              </div>
-              
-              <input
-                type="number"
-                placeholder="Price (₹)"
-                value={formData.price}
-                onChange={(e) => setFormData({...formData, price: e.target.value})}
-                className="border p-2 rounded w-full"
-                required
-              />
-              
-              <input
-                type="text"
-                placeholder="Image URL"
-                value={formData.image}
-                onChange={(e) => setFormData({...formData, image: e.target.value})}
-                className="border p-2 rounded w-full"
-                required
-              />
-              
-              <textarea
-                placeholder="Short Description"
-                value={formData.description}
-                onChange={(e) => setFormData({...formData, description: e.target.value})}
-                className="border p-2 rounded w-full h-20"
-                required
-              />
-              
-              <textarea
-                placeholder="Detailed Description"
-                value={formData.details}
-                onChange={(e) => setFormData({...formData, details: e.target.value})}
-                className="border p-2 rounded w-full h-24"
-                required
-              />
-              
-              <button 
-                type="submit"
-                className="bg-green-600 text-white px-6 py-2 rounded hover:bg-green-700"
-              >
-                {editingProduct ? 'Update Product' : 'Add Product'}
-              </button>
-            </form>
+        {recentOrders.length === 0 ? (
+          <p className="text-gray-600 text-center py-8">No orders yet</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Order ID</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Customer</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Amount</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Status</th>
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Date</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {recentOrders.map(order => (
+                  <tr key={order._id} className="hover:bg-gray-50">
+                    <td className="px-4 py-3 text-sm text-gray-900">{order.orderId}</td>
+                    <td className="px-4 py-3 text-sm text-gray-900">{order.shippingInfo?.fullName}</td>
+                    <td className="px-4 py-3 text-sm text-gray-900">₹{order.totalAmount}</td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${
+                        order.status === 'pending' ? 'bg-yellow-100 text-yellow-800' :
+                        order.status === 'processing' ? 'bg-blue-100 text-blue-800' :
+                        order.status === 'completed' ? 'bg-green-100 text-green-800' :
+                        'bg-red-100 text-red-800'
+                      }`}>
+                        {order.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-gray-600">
+                      {new Date(order.orderDate).toLocaleDateString()}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         )}
+      </div>
+    </div>
+  )
+}
 
-        {/* Products List */}
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-2xl font-bold mb-4">All Products ({products.length})</h2>
-          <div className="space-y-4">
-            {products.map(product => (
-              <div key={product._id} className="border p-4 rounded flex justify-between items-center">
-                <div>
-                  <h3 className="font-bold text-lg">{product.name}</h3>
-                  <p className="text-gray-600">{product.category} - ₹{product.price}</p>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleEdit(product)}
-                    className="bg-yellow-500 text-white px-4 py-2 rounded hover:bg-yellow-600"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(product._id)}
-                    className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
+// Reusable Stat Card Component
+function StatCard({ title, value, icon, color }) {
+  return (
+    <div className="bg-white rounded-lg shadow-md p-6">
+      <div className="flex items-center justify-between mb-4">
+        <div className={`${color} w-12 h-12 rounded-lg flex items-center justify-center text-2xl`}>
+          {icon}
         </div>
       </div>
+      <h3 className="text-gray-600 text-sm font-medium mb-1">{title}</h3>
+      <p className="text-2xl font-bold text-gray-900">{value}</p>
     </div>
   )
 }

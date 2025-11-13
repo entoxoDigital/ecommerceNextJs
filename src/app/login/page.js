@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import LoginForm from '../components/LoginForm'; // Adjust path if needed
+import LoginForm from '../../components/LoginForm'; // Adjust path if needed
 
 function Loading() {
   return (

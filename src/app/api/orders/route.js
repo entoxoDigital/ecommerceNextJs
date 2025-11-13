@@ -72,7 +72,7 @@ export async function POST(request) {
     
     const result = await db.collection('orders').insertOne(newOrder)
     
-    // Send only admin notification (customer email requires domain verification)
+    // Send only admin notification (customer email requestuires domain verification)
     if (process.env.RESEND_API_KEY) {
       sendAdminNotification(newOrder).catch(console.error)
     }
